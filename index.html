@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#ffffff">
+<title>샤갈</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+body{font-family:'Nunito',sans-serif;background:#fff;color:#1a1a2e;min-height:100dvh}
+
+/* Tabs */
+.tab-bar{position:fixed;bottom:0;left:0;right:0;display:flex;background:#fff;border-top:1px solid #f0f0f0;z-index:50;padding:6px 0 env(safe-area-inset-bottom,8px)}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;cursor:pointer;color:#c0c0c0;transition:color .2s;border:none;background:none;font-family:'Nunito'}
+.tab.active{color:#1a1a2e}
+.tab svg{width:22px;height:22px;fill:currentColor}
+.tab span{font-size:10px;font-weight:700}
+
+/* Pages */
+.page{display:none;min-height:100dvh;padding:0 24px 88px}
+.page.active{display:flex;flex-direction:column}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:420px;padding:28px 24px 40px;animation:su .2s ease}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal h3{font-size:17px;font-weight:900;margin-bottom:20px}
+.s-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #f5f5f5}
+.s-row:last-child{border:none}
+.s-row.col{flex-direction:column;align-items:flex-start;gap:10px}
+.s-label{font-size:15px;font-weight:700}
+.s-sub{font-size:12px;color:#aaa}
+.lang-tog{display:flex;background:#f3f3f5;border-radius:10px;overflow:hidden}
+.lang-o{padding:8px 18px;font-size:13px;font-weight:800;border:none;background:none;cursor:pointer;color:#aaa;font-family:'Nunito';transition:all .15s}
+.lang-o.on{background:#1a1a2e;color:#fff;border-radius:10px}
+.m-close{margin-top:20px;width:100%;padding:14px;border-radius:14px;border:none;background:#f3f3f5;font-family:'Nunito';font-size:15px;font-weight:800;cursor:pointer;color:#1a1a2e}
+
+/* Preset editor */
+.pe-chips{display:flex;flex-wrap:wrap;gap:8px}
+.pe-chip{display:flex;align-items:center;gap:6px;background:#f3f3f5;border-radius:10px;padding:7px 12px;font-size:14px;font-weight:700}
+.pe-x{width:20px;height:20px;border-radius:50%;background:#e0e0e0;border:none;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'Nunito';font-weight:800;color:#888}
+.pe-add{display:flex;gap:6px;align-items:center}
+.pe-in{width:52px;padding:7px 8px;border-radius:8px;border:1.5px solid #e0e0e0;font-family:'Nunito';font-size:14px;font-weight:700;text-align:center}
+.pe-in:focus{outline:none;border-color:#1a1a2e}
+.pe-btn{padding:7px 16px;border-radius:8px;border:none;background:#1a1a2e;color:#fff;font-family:'Nunito';font-size:13px;font-weight:800;cursor:pointer}
+
+/* Header */
+.hdr{display:flex;align-items:center;justify-content:flex-end;padding:52px 0 0}
+.set-btn{width:38px;height:38px;border-radius:50%;background:#f5f5f5;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.set-btn svg{width:20px;height:20px;fill:#999}
+
+/* Timer */
+.timer-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:20px}
+.timer-num{font-size:108px;font-weight:900;line-height:1;letter-spacing:-4px;color:#1a1a2e;transition:color .3s}
+.timer-num.final{color:#FF8C42;animation:shake .3s ease infinite}
+.timer-num.done{color:#34C759}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+.timer-sub{font-size:15px;font-weight:700;color:#c0c0c0;margin:8px 0 40px}
+.t-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:20px}
+.t-btn{background:#f5f5f5;border:2px solid transparent;color:#1a1a2e;font-family:'Nunito';font-size:16px;font-weight:800;padding:14px 24px;border-radius:14px;cursor:pointer;transition:all .12s;min-width:78px;text-align:center}
+.t-btn:active{transform:scale(.94)}
+.t-btn.on{border-color:#1a1a2e;background:#fff}
+.adj-row{display:flex;align-items:center;gap:24px;margin-bottom:36px}
+.adj-b{width:48px;height:48px;border-radius:50%;background:#f5f5f5;border:none;color:#1a1a2e;font-size:24px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:'Nunito';transition:all .1s}
+.adj-b:active{transform:scale(.88)}
+.adj-v{font-size:20px;font-weight:800;min-width:56px;text-align:center}
+.go{width:100%;max-width:300px;padding:18px;border-radius:18px;border:none;background:#1a1a2e;color:#fff;font-family:'Nunito';font-size:18px;font-weight:800;cursor:pointer;transition:all .12s}
+.go:active{transform:scale(.97)}
+.go.running{background:#FF8C42}
+.sr{display:flex;align-items:center;gap:14px;margin-top:28px}
+.sl{font-size:14px;font-weight:700;color:#c0c0c0}
+.sn{font-size:28px;font-weight:900;color:#1a1a2e}
+.sc{font-size:12px;font-weight:700;color:#aaa;background:#f5f5f5;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:'Nunito'}
+
+/* Calendar */
+.cal-hdr{display:flex;align-items:center;justify-content:space-between;padding:52px 0 20px}
+.cal-title{font-size:20px;font-weight:900}
+.cal-nav{display:flex;gap:8px}
+.cal-arr{width:36px;height:36px;border-radius:50%;background:#f5f5f5;border:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'Nunito';font-weight:800;color:#999}
+.cal-arr:active{background:#eee}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-dl{text-align:center;font-size:11px;font-weight:700;color:#c0c0c0;padding:8px 0}
+.cal-c{aspect-ratio:1;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#d0d0d0}
+.cal-c.hd{color:#1a1a2e;background:#f5f5f5}
+.cal-c.td{background:#1a1a2e;color:#fff}
+.cal-c .cs{font-size:9px;font-weight:800;color:#888;margin-top:1px}
+.cal-c.td .cs{color:rgba(255,255,255,.7)}
+.cal-tot{margin-top:24px;padding:18px;background:#f9f9fb;border-radius:16px;display:flex;align-items:center;justify-content:space-between}
+.cal-tot-l{font-size:14px;font-weight:700;color:#999}
+.cal-tot-n{font-size:24px;font-weight:900;color:#1a1a2e}
+
+/* ===== LOCK SCREEN ===== */
+.lockscreen{
+  position:fixed;inset:0;background:#000;z-index:200;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;touch-action:none;cursor:pointer;
+}
+.lockscreen.show{display:flex}
+.lock-time{
+  font-size:160px;font-weight:900;line-height:1;letter-spacing:-6px;
+  color:#fff;transition:color .3s;
+}
+.lock-time.final{color:#FF8C42;animation:shake .3s ease infinite}
+.lock-time.done{color:#34C759}
+.lock-sets{font-size:16px;font-weight:700;color:rgba(255,255,255,.4)}
+.lock-sets b{color:rgba(255,255,255,.8);font-size:20px;margin-left:4px}
+.lock-hint{
+  position:absolute;bottom:48px;
+  font-size:12px;font-weight:700;color:rgba(255,255,255,.2);
+  letter-spacing:1px;
+}
+.lock-status{font-size:14px;font-weight:700;color:rgba(255,255,255,.3);margin-bottom:8px}
+.lock-close{
+  position:absolute;top:52px;right:24px;
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,.1);border:none;
+  color:rgba(255,255,255,.5);font-size:18px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-family:'Nunito';font-weight:800;
+}
+
+.flash{position:fixed;inset:0;background:#1a1a2e;opacity:0;pointer-events:none;z-index:300;transition:opacity .08s}
+.flash.on{opacity:.05}
+::-webkit-scrollbar{width:0}
+</style>
+</head>
+<body>
+<div class="flash" id="flash"></div>
+
+<!-- Lock Screen -->
+<div class="lockscreen" id="lock">
+  <button class="lock-close" id="lockClose">✕</button>
+  <div class="lock-status" id="lockStatus">준비</div>
+  <div class="lock-time" id="lockTime">1:00</div>
+  <div class="lock-sets" id="lockSets"></div>
+  <div class="lock-hint" id="lockHint">더블탭하여 시작</div>
+</div>
+
+<!-- Timer Page -->
+<div class="page active" id="pgTimer">
+  <div class="hdr"><button class="set-btn" id="settingsBtn"><svg viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7zm7.43-2.53c.04-.32.07-.64.07-.97s-.03-.66-.07-.97l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1a7.28 7.28 0 0 0-1.67-.97l-.38-2.65A.49.49 0 0 0 14 2h-4a.49.49 0 0 0-.49.42l-.38 2.65c-.61.25-1.17.58-1.67.97l-2.49-1a.5.5 0 0 0-.61.22l-2 3.46a.49.49 0 0 0 .12.64l2.11 1.65c-.04.32-.07.65-.07.97s.03.66.07.97l-2.11 1.65a.5.5 0 0 0-.12.64l2 3.46a.5.5 0 0 0 .61.22l2.49-1c.5.39 1.06.72 1.67.97l.38 2.65c.05.24.26.42.49.42h4c.24 0 .44-.18.49-.42l.38-2.65c.61-.25 1.17-.58 1.67-.97l2.49 1a.5.5 0 0 0 .61-.22l2-3.46a.49.49 0 0 0-.12-.64l-2.11-1.65z"/></svg></button></div>
+  <div class="timer-wrap">
+    <div class="timer-num" id="timer">1:00</div>
+    <div class="timer-sub" id="label">준비</div>
+    <div class="t-btns" id="tBtns"></div>
+    <div class="adj-row"><button class="adj-b" id="dn">−</button><div class="adj-v" id="val">1:00</div><button class="adj-b" id="up">+</button></div>
+    <button class="go" id="go">시작</button>
+    <div class="sr"><div class="sl" data-k="sets">세트</div><div class="sn" id="sets">0</div><button class="sc" id="clr" data-k="reset">초기화</button></div>
+  </div>
+</div>
+
+<!-- Calendar Page -->
+<div class="page" id="pgCal">
+  <div class="cal-hdr"><div class="cal-title" id="calTitle"></div><div class="cal-nav"><button class="cal-arr" id="calPrev">‹</button><button class="cal-arr" id="calNext">›</button></div></div>
+  <div class="cal-grid" id="calGrid"></div>
+  <div class="cal-tot"><div class="cal-tot-l" data-k="monthTotal">이번 달 총 세트</div><div class="cal-tot-n" id="calTotN">0</div></div>
+</div>
+
+<!-- Tabs -->
+<div class="tab-bar">
+  <button class="tab active" data-pg="pgTimer"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 11h-2V7h2v6z"/></svg><span data-k="timer">타이머</span></button>
+  <button class="tab" data-pg="pgCal"><svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg><span data-k="calendar">캘린더</span></button>
+</div>
+
+<!-- Settings -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 data-k="settings">설정</h3>
+    <div class="s-row"><div class="s-label" data-k="lang">언어</div><div class="lang-tog"><button class="lang-o on" data-lang="ko">한국어</button><button class="lang-o" data-lang="en">English</button></div></div>
+    <div class="s-row col">
+      <div class="s-label" data-k="presets">숏컷 설정</div>
+      <div class="s-sub" data-k="presetsDesc">타이머 버튼을 추가/삭제할 수 있어요</div>
+      <div class="pe-chips" id="peChips"></div>
+      <div class="pe-add"><input class="pe-in" id="peMin" type="number" min="0" max="10" value="1" placeholder="분"><span style="font-weight:800;color:#bbb">:</span><input class="pe-in" id="peSec" type="number" min="0" max="59" value="0" step="15" placeholder="초"><button class="pe-btn" id="peAdd" data-k="add">추가</button></div>
+    </div>
+    <button class="m-close" id="modalClose" data-k="close">닫기</button>
+  </div>
+</div>
+
+<script>
+const L={
+  ko:{ready:'준비',resting:'쉬는 중',done:'완료!',start:'시작',pause:'일시정지',resume:'재개',sets:'세트',reset:'초기화',settings:'설정',lang:'언어',close:'닫기',timer:'타이머',calendar:'캘린더',monthTotal:'이번 달 총 세트',presets:'숏컷 설정',presetsDesc:'타이머 버튼을 추가/삭제할 수 있어요',add:'추가',days:['일','월','화','수','목','금','토'],months:['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],suf:'세트',dbtap:'더블탭하여 시작',dbtapPause:'더블탭하여 일시정지',dbtapResume:'더블탭하여 재개',setLabel:'세트'},
+  en:{ready:'Ready',resting:'Resting',done:'Done!',start:'Start',pause:'Pause',resume:'Resume',sets:'Sets',reset:'Clear',settings:'Settings',lang:'Language',close:'Close',timer:'Timer',calendar:'Calendar',monthTotal:'Total sets this month',presets:'Shortcut Presets',presetsDesc:'Add or remove timer buttons',add:'Add',days:['Su','Mo','Tu','We','Th','Fr','Sa'],months:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],suf:'sets',dbtap:'Double-tap to start',dbtapPause:'Double-tap to pause',dbtapResume:'Double-tap to resume',setLabel:'Set'}
+};
+let lang='ko';function t(k){return L[lang][k]}
+
+const AC=window.AudioContext||window.webkitAudioContext;let ac;
+function ea(){if(!ac)ac=new AC();if(ac.state==='suspended')ac.resume()}
+function beep(f,d,v=.4){ea();const o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.type='square';o.frequency.value=f;g.gain.value=v;g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.start();o.stop(ac.currentTime+d)}
+function beepS(){beep(880,.12,.45)}
+function beepL(){ea();const o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.type='square';o.frequency.value=1200;g.gain.value=.55;g.gain.setValueAtTime(.55,ac.currentTime);g.gain.setValueAtTime(.55,ac.currentTime+.5);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.85);o.start();o.stop(ac.currentTime+.9)}
+function fl(){const f=$('flash');f.classList.add('on');setTimeout(()=>f.classList.remove('on'),120)}
+
+let total=60,rem=60,run=false,iv=null,sets=0;
+let presets=JSON.parse(localStorage.getItem('shagal-presets')||'[30,60,90,120,180]');
+const $=id=>document.getElementById(id);
+function fmt(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function getData(){try{return JSON.parse(localStorage.getItem('shagal-data')||'{}')}catch(e){return{}}}
+function saveSet(){const d=getData(),k=todayKey();d[k]=(d[k]||0)+1;localStorage.setItem('shagal-data',JSON.stringify(d))}
+
+function renderPresets(){const c=$('tBtns');c.innerHTML='';presets.sort((a,b)=>a-b).forEach(p=>{const b=document.createElement('button');b.className='t-btn'+(p===total?' on':'');b.dataset.t=p;b.textContent=fmt(p);b.addEventListener('click',()=>setT(p));c.appendChild(b)})}
+function renderPE(){const c=$('peChips');c.innerHTML='';presets.sort((a,b)=>a-b).forEach(p=>{const d=document.createElement('div');d.className='pe-chip';d.innerHTML=fmt(p)+' <button class="pe-x" data-v="'+p+'">✕</button>';c.appendChild(d)});c.querySelectorAll('.pe-x').forEach(x=>x.addEventListener('click',()=>{presets=presets.filter(p=>p!==parseInt(x.dataset.v));localStorage.setItem('shagal-presets',JSON.stringify(presets));renderPresets();renderPE()}))}
+
+function updLock(){
+  $('lockTime').textContent=fmt(rem);
+  const iF=rem<=3&&rem>0&&run,iD=rem===0&&!run;
+  $('lockTime').className='lock-time'+(iF?' final':'')+(iD?' done':'');
+  $('lockStatus').textContent=run?t('resting'):(iD?t('done'):t('ready'));
+  $('lockSets').innerHTML=t('setLabel')+' <b>'+sets+'</b>';
+  $('lockHint').textContent=run?t('dbtapPause'):(rem===0||rem===total?t('dbtap'):t('dbtapResume'));
+}
+
+function upd(){
+  $('timer').textContent=fmt(rem);$('val').textContent=fmt(total);
+  const iF=rem<=3&&rem>0&&run,iD=rem===0&&!run;
+  $('timer').className='timer-num'+(iF?' final':'')+(iD?' done':'');
+  $('label').textContent=run?t('resting'):(iD?t('done'):t('ready'));
+  $('go').textContent=run?t('pause'):(rem===0?t('start'):(rem<total?t('resume'):t('start')));
+  $('go').className='go'+(run?' running':'');
+  $('sets').textContent=sets;
+  document.querySelectorAll('.t-btn').forEach(b=>b.classList.toggle('on',parseInt(b.dataset.t)===total));
+  updLock();
+}
+
+function tick(){
+  if(rem<=0){stp();return}rem--;
+  if(rem>=1&&rem<=3){beepS();fl()}
+  else if(rem===0){beepL();fl();sets++;saveSet();stp()}
+  upd();
+}
+function go(){ea();if(rem===0)rem=total;run=true;iv=setInterval(tick,1000);rwl();upd()}
+function stp(){run=false;clearInterval(iv);iv=null;upd()}
+function setT(s){if(run)return;total=Math.max(5,Math.min(600,s));rem=total;upd()}
+async function rwl(){try{if('wakeLock'in navigator)await navigator.wakeLock.request('screen')}catch(e){}}
+
+// Lock screen double-tap
+let lastTap=0;
+$('lock').addEventListener('touchend',function(e){
+  if(e.target===$('lockClose'))return;
+  const now=Date.now();
+  if(now-lastTap<350){
+    e.preventDefault();
+    ea();
+    if(run)stp();else go();
+  }
+  lastTap=now;
+});
+
+// Show lock screen from main — double tap on timer area
+let lastTapMain=0;
+$('timer').addEventListener('touchend',function(e){
+  const now=Date.now();
+  if(now-lastTapMain<350){
+    e.preventDefault();
+    $('lock').classList.add('show');
+    updLock();
+  }
+  lastTapMain=now;
+});
+
+$('lockClose').addEventListener('click',()=>$('lock').classList.remove('show'));
+
+// Calendar
+let cY,cM;(()=>{const n=new Date();cY=n.getFullYear();cM=n.getMonth()})();
+function renderCal(){$('calTitle').textContent=cY+' '+L[lang].months[cM];const g=$('calGrid');g.innerHTML='';L[lang].days.forEach(d=>{const e=document.createElement('div');e.className='cal-dl';e.textContent=d;g.appendChild(e)});const f=new Date(cY,cM,1).getDay(),l=new Date(cY,cM+1,0).getDate(),data=getData(),now=new Date();let mt=0;for(let i=0;i<f;i++){g.appendChild(document.createElement('div')).className='cal-c'}for(let d=1;d<=l;d++){const k=cY+'-'+String(cM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'),s=data[k]||0;mt+=s;const isT=cY===now.getFullYear()&&cM===now.getMonth()&&d===now.getDate();const e=document.createElement('div');e.className='cal-c'+(s>0?' hd':'')+(isT?' td':'');e.innerHTML='<span>'+d+'</span>'+(s>0?'<span class="cs">'+s+L[lang].suf+'</span>':'');g.appendChild(e)}$('calTotN').textContent=mt}
+
+function applyLang(){document.querySelectorAll('[data-k]').forEach(el=>{const k=el.dataset.k;if(L[lang][k])el.textContent=L[lang][k]});document.querySelectorAll('.lang-o').forEach(b=>b.classList.toggle('on',b.dataset.lang===lang));upd();renderCal()}
+
+$('go').addEventListener('click',()=>{ea();run?stp():go()});
+$('up').addEventListener('click',()=>setT(total+15));
+$('dn').addEventListener('click',()=>setT(total-15));
+$('clr').addEventListener('click',()=>{sets=0;upd()});
+document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));tab.classList.add('active');$(tab.dataset.pg).classList.add('active');if(tab.dataset.pg==='pgCal')renderCal()}));
+$('calPrev').addEventListener('click',()=>{cM--;if(cM<0){cM=11;cY--}renderCal()});
+$('calNext').addEventListener('click',()=>{cM++;if(cM>11){cM=0;cY++}renderCal()});
+$('settingsBtn').addEventListener('click',()=>{renderPE();$('modalBg').classList.add('show')});
+$('modalBg').addEventListener('click',e=>{if(e.target===$('modalBg'))$('modalBg').classList.remove('show')});
+$('modalClose').addEventListener('click',()=>$('modalBg').classList.remove('show'));
+document.querySelectorAll('.lang-o').forEach(b=>b.addEventListener('click',()=>{lang=b.dataset.lang;applyLang()}));
+$('peAdd').addEventListener('click',()=>{const tot=(parseInt($('peMin').value)||0)*60+(parseInt($('peSec').value)||0);if(tot>=5&&tot<=600&&!presets.includes(tot)){presets.push(tot);localStorage.setItem('shagal-presets',JSON.stringify(presets));renderPresets();renderPE()}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&run)rwl()});
+
+renderPresets();upd();renderCal();
+</script>
+</body>
+</html>

@@ -1,0 +1,510 @@
+<title>편승 엔진</title>
+<meta name="description" content="지금 화제가 되는 이슈를 고르면, 0.5-SECOND 방법론으로 표현을 발굴하고, 브랜드명을 입력하면 바로 쓸 수 있는 실행 아이디어까지 만들어주는 도구.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap">
+<style>
+  :root{
+    --fog:      #f5f5f7;
+    --surface:  #ffffff;
+    --ink:      #000000;
+    --text:     #1d1d1f;
+    --text-dim: #6e6e73;
+    --white-90: rgba(255,255,255,.92);
+    --white-60: rgba(255,255,255,.62);
+    --white-38: rgba(255,255,255,.38);
+    --accent:   #0071e3;
+    --accent-soft: #e8f1fd;
+    --link-dark:#2997ff;
+    --warn:     #c8500a;
+    --warn-soft:#fdf0e6;
+    --border:   rgba(0,0,0,.09);
+    --radius-card: 16px;
+    --radius-pill: 980px;
+    --shadow-card: 0 1px 2px rgba(0,0,0,.04), 0 10px 24px rgba(0,0,0,.06);
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; background:var(--fog); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:80px;
+  }
+  img{ max-width:100%; }
+  [hidden]{ display:none!important; }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+  .wrap{ max-width:760px; margin:0 auto; padding-inline:clamp(18px,5vw,24px); }
+  ::selection{ background:var(--accent-soft); }
+
+  /* ---- top bar ---- */
+  .topbar{
+    position:sticky; top:0; z-index:40;
+    background:rgba(0,0,0,.82); backdrop-filter:blur(18px) saturate(180%); -webkit-backdrop-filter:blur(18px) saturate(180%);
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .topbar .wrap{ display:flex; align-items:center; justify-content:space-between; height:52px; }
+  .brand{ color:var(--white-90); font-weight:700; font-size:14px; letter-spacing:-.1px; }
+  .ai-status{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--white-60); }
+  .dot{ width:6px; height:6px; border-radius:50%; background:#30d158; }
+  .dot.off{ background:#ff6961; }
+
+  /* ---- hero / intro ---- */
+  .intro{ padding:44px 0 8px; }
+  .intro h1{ font-size:clamp(28px,6vw,38px); font-weight:800; letter-spacing:-.5px; margin:0 0 10px; text-wrap:balance; }
+  .intro p{ font-size:15.5px; line-height:1.6; color:var(--text-dim); margin:0 0 26px; max-width:56ch; }
+
+  .stepper{ display:flex; gap:0; margin-bottom:8px; }
+  .step-tab{ flex:1; padding:10px 0 12px; border-bottom:3px solid var(--border); }
+  .step-tab .n{ font-size:11px; font-weight:800; color:var(--text-dim); letter-spacing:.03em; }
+  .step-tab .l{ font-size:12.5px; font-weight:700; margin-top:2px; color:var(--text-dim); }
+  .step-tab.current{ border-bottom-color:var(--accent); }
+  .step-tab.current .n, .step-tab.current .l{ color:var(--accent); }
+  .step-tab.done{ border-bottom-color:var(--text); }
+  .step-tab.done .n, .step-tab.done .l{ color:var(--text); }
+
+  /* ---- panels ---- */
+  .panel{ padding:36px 0; border-top:1px solid var(--border); }
+  .panel:first-of-type{ border-top:none; }
+  .panel-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+  .panel-head h2{ font-size:19px; font-weight:800; margin:0; letter-spacing:-.2px; }
+  .panel-head .sub{ font-size:13px; color:var(--text-dim); margin-top:4px; }
+  .recap{ display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:var(--radius-pill); background:var(--accent-soft); color:var(--accent); font-size:12.5px; font-weight:700; margin-bottom:18px; }
+
+  .btn{
+    display:inline-flex; align-items:center; gap:8px; justify-content:center;
+    border-radius:var(--radius-pill); font-size:14.5px; font-weight:700; line-height:1;
+    height:40px; padding:0 18px; border:none; cursor:pointer;
+    background:var(--accent); color:#fff; transition:transform .12s ease,opacity .15s ease,background-color .15s ease;
+    white-space:nowrap;
+  }
+  .btn:hover{ background:#0077ed; }
+  .btn:active{ transform:scale(.97); }
+  .btn:disabled{ opacity:.45; cursor:not-allowed; }
+  .btn-ghost{ background:transparent; color:var(--accent); border:1.5px solid var(--accent); height:38px; }
+  .btn-ghost:hover{ background:var(--accent-soft); }
+  .btn-text{ background:none; color:var(--text-dim); height:auto; padding:4px 6px; font-weight:600; text-decoration:underline; }
+  .btn-text:hover{ background:none; color:var(--text); }
+
+  .spinner{ width:14px; height:14px; border-radius:50%; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; animation:spin .7s linear infinite; }
+  .btn-ghost .spinner{ border-color:rgba(0,113,227,.3); border-top-color:var(--accent); }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  @media (prefers-reduced-motion:reduce){ .spinner{ animation:none; } }
+
+  .status-line{ font-size:13px; margin-top:12px; display:flex; align-items:center; gap:8px; }
+  .status-line.error{ color:var(--warn); }
+  .status-line.thinking{ color:var(--text-dim); }
+
+  /* ---- option / candidate cards ---- */
+  .cardgrid{ display:grid; grid-template-columns:1fr; gap:10px; margin-top:18px; }
+  .opt{
+    text-align:left; width:100%; background:var(--surface); border:1.5px solid var(--border);
+    border-radius:var(--radius-card); padding:16px 18px; cursor:pointer;
+    box-shadow:var(--shadow-card); transition:border-color .15s ease, transform .1s ease;
+  }
+  .opt:hover{ transform:translateY(-1px); }
+  .opt.selected{ border-color:var(--accent); box-shadow:0 0 0 1.5px var(--accent), var(--shadow-card); }
+  .opt .row1{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .opt .title{ font-weight:800; font-size:15.5px; }
+  .opt .tag{ font-size:10.5px; font-weight:700; color:var(--text-dim); background:var(--fog); padding:3px 9px; border-radius:var(--radius-pill); }
+  .opt .desc{ font-size:13px; color:var(--text-dim); margin-top:5px; line-height:1.5; }
+
+  .opt.word .row1{ align-items:baseline; }
+  .opt.word .mut{ font-size:13px; color:var(--text-dim); }
+  .opt.word .mut .arrow{ margin:0 4px; }
+  .opt.word .w{ font-size:22px; font-weight:800; margin-top:4px; }
+  .opt.word .score{ font-size:13px; font-weight:800; color:var(--accent); font-variant-numeric:tabular-nums; }
+  .opt.word .why{ font-size:13px; color:var(--text-dim); margin-top:6px; line-height:1.5; }
+  .opt.word .risk{ font-size:12px; color:var(--warn); margin-top:4px; }
+
+  .custom-box{
+    background:var(--surface); border:1.5px dashed var(--border); border-radius:var(--radius-card);
+    padding:14px 16px; display:flex; gap:8px; align-items:center; margin-top:10px;
+  }
+  .custom-box input{
+    flex:1; border:none; background:transparent; font-size:14.5px; font-family:inherit; color:var(--text);
+  }
+  .custom-box input:focus{ outline:none; }
+  .custom-box input::placeholder{ color:#b6b6bb; }
+
+  .empty-state{
+    background:var(--fog); border-radius:var(--radius-card); padding:18px 20px; font-size:13.5px; color:var(--text-dim); line-height:1.6;
+  }
+
+  .brand-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .brand-input{
+    flex:1; min-width:200px; height:44px; border-radius:var(--radius-pill); border:1.5px solid var(--border);
+    background:var(--surface); padding:0 18px; font-size:14.5px; font-family:inherit; color:var(--text);
+  }
+  .brand-input:focus{ outline:none; border-color:var(--accent); }
+
+  /* ---- execution result ---- */
+  .result{
+    background:var(--ink); color:var(--white-90); border-radius:20px; padding:28px clamp(20px,4vw,32px); margin-top:20px;
+  }
+  .result .r-eyebrow{ font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--link-dark); margin-bottom:10px; }
+  .result h3{ font-size:22px; font-weight:800; line-height:1.35; margin:0 0 14px; letter-spacing:-.2px; }
+  .result .hook{ font-size:16px; font-weight:600; padding:14px 16px; background:rgba(255,255,255,.06); border-left:3px solid var(--link-dark); border-radius:0 10px 10px 0; margin-bottom:16px; }
+  .result .format-tag{ display:inline-block; font-size:11.5px; font-weight:700; color:var(--ink); background:var(--link-dark); padding:5px 11px; border-radius:var(--radius-pill); margin-bottom:16px; }
+  .result ol{ margin:0 0 16px; padding-left:20px; }
+  .result li{ margin-bottom:8px; font-size:14px; line-height:1.55; color:var(--white-90); }
+  .result .meta{ font-size:12.5px; color:var(--white-38); border-top:1px solid rgba(255,255,255,.12); padding-top:14px; margin-top:4px; line-height:1.6; }
+  .result .meta b{ color:var(--white-60); font-weight:700; }
+
+  footer{ text-align:center; padding:40px 0 10px; }
+  footer p{ font-size:11.5px; color:var(--text-dim); margin:0; }
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <span class="brand">⚡ 편승 엔진</span>
+    <span class="ai-status"><span class="dot" id="aiDot"></span><span id="aiStatusText">AI 확인 중…</span></span>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="intro">
+    <h1>이슈 하나가, 실행안이 되기까지.</h1>
+    <p>지금 화제성 있는 이슈를 고르고 → 0.5-SECOND 방식으로 표현을 발굴하고 → 브랜드명을 넣으면, 바로 편승할 수 있는 실행 아이디어가 나옵니다.</p>
+
+    <div class="stepper" id="stepper">
+      <div class="step-tab current" data-step="1"><div class="n">STEP 1</div><div class="l">트렌드</div></div>
+      <div class="step-tab" data-step="2"><div class="n">STEP 2</div><div class="l">표현</div></div>
+      <div class="step-tab" data-step="3"><div class="n">STEP 3</div><div class="l">브랜드</div></div>
+      <div class="step-tab" data-step="4"><div class="n">STEP 4</div><div class="l">실행안</div></div>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <section class="panel" id="panel1">
+    <div class="panel-head">
+      <div><h2>1 · 지금 편승할 이슈 고르기</h2><div class="sub">AI가 후보를 제안합니다. 최신 이슈는 직접 입력하는 편이 더 정확해요.</div></div>
+      <button class="btn" id="btnTrend">트렌드 후보 만들기</button>
+    </div>
+    <div id="trendStatus"></div>
+    <div class="cardgrid" id="trendCards"></div>
+    <div class="custom-box">
+      <span style="font-size:15px;">✏️</span>
+      <input type="text" id="trendCustom" placeholder="또는 지금 진짜 화제인 이슈를 직접 입력…" maxlength="60">
+      <button class="btn-ghost btn" id="btnTrendCustom" style="height:34px;padding:0 14px;font-size:13px;">선택</button>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="panel" id="panel2" hidden>
+    <div class="panel-head">
+      <div><h2>2 · 표현 발굴</h2><div class="sub">최소 변형, 의미 충돌, 앵커력 — 0.5-SECOND 기준으로 채점합니다.</div></div>
+      <button class="btn" id="btnName">표현 만들기</button>
+    </div>
+    <div class="recap" id="trendRecap"></div>
+    <div id="nameStatus"></div>
+    <div class="cardgrid" id="nameCards"></div>
+    <div class="custom-box">
+      <span style="font-size:15px;">✏️</span>
+      <input type="text" id="nameCustom" placeholder="직접 만든 표현을 써도 됩니다…" maxlength="30">
+      <button class="btn-ghost btn" id="btnNameCustom" style="height:34px;padding:0 14px;font-size:13px;">선택</button>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="panel" id="panel3" hidden>
+    <div class="panel-head">
+      <div><h2>3 · 광고주 브랜드명 입력</h2><div class="sub">이 표현으로 이 브랜드가 지금 뭘 할 수 있는지 만들어 드립니다.</div></div>
+    </div>
+    <div class="recap" id="nameRecap"></div>
+    <div class="brand-row">
+      <input type="text" class="brand-input" id="brandInput" placeholder="예: 배달의민족, 삼성전자, OO카드…" maxlength="40">
+      <button class="btn" id="btnIdea">실행 아이디어 도출</button>
+    </div>
+    <div id="ideaStatus"></div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="panel" id="panel4" hidden>
+    <div class="panel-head">
+      <div><h2>4 · 실행 아이디어</h2><div class="sub">지금 바로 실행 가능한 수준으로.</div></div>
+      <button class="btn-ghost btn" id="btnRegen">다시 만들기</button>
+    </div>
+    <div id="resultBox"></div>
+  </section>
+
+  <footer><p>편승 엔진 — 0.5-SECOND 방법론 기반 · AI 제안은 참고용이며 실행 전 사실관계·브랜드 세이프티를 반드시 확인하세요.</p></footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- state ----------
+  var sample = null;
+  var aiUnavailable = false;
+  var state = { trend:null, name:null, brand:null };
+
+  var els = {
+    aiDot: document.getElementById('aiDot'),
+    aiStatusText: document.getElementById('aiStatusText'),
+    stepper: document.getElementById('stepper'),
+    panel1: document.getElementById('panel1'), panel2: document.getElementById('panel2'),
+    panel3: document.getElementById('panel3'), panel4: document.getElementById('panel4'),
+    btnTrend: document.getElementById('btnTrend'), trendStatus: document.getElementById('trendStatus'),
+    trendCards: document.getElementById('trendCards'), trendCustom: document.getElementById('trendCustom'),
+    btnTrendCustom: document.getElementById('btnTrendCustom'),
+    btnName: document.getElementById('btnName'), nameStatus: document.getElementById('nameStatus'),
+    nameCards: document.getElementById('nameCards'), nameCustom: document.getElementById('nameCustom'),
+    btnNameCustom: document.getElementById('btnNameCustom'), trendRecap: document.getElementById('trendRecap'),
+    nameRecap: document.getElementById('nameRecap'), brandInput: document.getElementById('brandInput'),
+    btnIdea: document.getElementById('btnIdea'), ideaStatus: document.getElementById('ideaStatus'),
+    resultBox: document.getElementById('resultBox'), btnRegen: document.getElementById('btnRegen')
+  };
+
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+  function errorCopy(code){
+    switch(code){
+      case 'not_granted': return 'AI 사용이 허용되지 않았습니다.';
+      case 'sampling_disabled': case 'not_declared': case 'capability_disabled': case 'capability_removed':
+        return '이 환경에서는 AI 기능을 쓸 수 없습니다.';
+      case 'rate_limited': return '요청이 많습니다. 잠시 후 다시 시도해주세요.';
+      case 'session_expired': return '다시 로그인한 뒤 시도해주세요.';
+      case 'refused': return 'AI가 이 요청을 처리하지 않았습니다. 다른 이슈나 표현으로 시도해보세요.';
+      case 'empty_completion': return '응답을 받지 못했습니다. 다시 시도해주세요.';
+      case 'invalid_json': return '형식이 맞지 않는 응답이 왔습니다. 다시 시도해주세요.';
+      case 'cancelled': return '취소했습니다.';
+      case 'prompt_too_large': return '입력이 너무 깁니다.';
+      default: return '일시적인 오류가 발생했습니다. 다시 시도해주세요.';
+    }
+  }
+
+  function isPermanent(code){
+    return ['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].indexOf(code) !== -1;
+  }
+
+  function setThinking(target, on, label){
+    if(on){
+      target.innerHTML = '<div class="status-line thinking"><span class="spinner"></span>' + esc(label||'AI가 생각 중입니다…') + '</div>';
+    } else {
+      target.innerHTML = '';
+    }
+  }
+  function setError(target, msg){
+    target.innerHTML = '<div class="status-line error">⚠️ ' + esc(msg) + '</div>';
+  }
+
+  function lockAIFeatures(msg){
+    aiUnavailable = true;
+    [els.btnTrend, els.btnName, els.btnIdea, els.btnRegen].forEach(function(b){ b.disabled = true; });
+    els.aiDot.classList.add('off');
+    els.aiStatusText.textContent = msg || 'AI 사용 불가';
+  }
+
+  async function askJSON(prompt, opts){
+    if(!sample) throw { code:'not_declared', message:'sample unavailable' };
+    return sample.json(prompt, Object.assign({ modelTier:'default', cache:false }, opts||{}));
+  }
+
+  function goToStep(n){
+    var panels = [null, els.panel1, els.panel2, els.panel3, els.panel4];
+    for(var i=1;i<=4;i++){ if(panels[i]) panels[i].hidden = (i>n); }
+    var tabs = els.stepper.querySelectorAll('.step-tab');
+    tabs.forEach(function(t){
+      var s = parseInt(t.dataset.step,10);
+      t.classList.toggle('current', s===n);
+      t.classList.toggle('done', s<n);
+    });
+    if(n>1){
+      panels[n].scrollIntoView({ behavior:'smooth', block:'start' });
+    }
+  }
+
+  // ================= STEP 1: TREND =================
+  var TREND_PROMPT =
+    '너는 한국의 SNS·뉴스·유튜브·커뮤니티 전반에서 지금 이 시기에 화제성이 큰 이슈를 브랜드 마케팅 담당자에게 제안하는 트렌드 리서처다. ' +
+    '연예인 가십 하나에 치우치지 말고, 정치/사회, 경제, 스포츠, 엔터/유튜브, IT·플랫폼, 라이프스타일 중 서로 다른 영역에서 골고루 후보를 내라. ' +
+    '언어유희(짧은 한국어 조어)를 만들기 좋은 소재, 즉 이미 강한 원본 단어나 뚜렷한 모순/충돌 구조가 있는 이슈를 우선한다.\n\n' +
+    '정확히 3개의 이슈를 JSON 배열로만 답하라. 각 원소는 {"title": string(12자 이내, 이슈를 압축한 한글 라벨), "oneLiner": string(한 문장 설명), "domain": string(위 영역 중 하나)}.\n' +
+    '예시: [{"title":"예시이슈","oneLiner":"한 문장 설명.","domain":"엔터/유튜브"}]\n' +
+    '설명 없이 JSON 배열만 답하라.';
+
+  els.btnTrend.addEventListener('click', async function(){
+    if(aiUnavailable) return;
+    els.btnTrend.disabled = true;
+    setThinking(els.trendStatus, true, 'AI가 지금 이슈를 훑는 중입니다… (최대 1분)');
+    els.trendCards.innerHTML = '';
+    try{
+      var list = await askJSON(TREND_PROMPT);
+      if(!Array.isArray(list)) list = [];
+      setThinking(els.trendStatus, false);
+      renderTrendCards(list);
+    } catch(e){
+      setThinking(els.trendStatus, false);
+      setError(els.trendStatus, errorCopy(e.code));
+      if(isPermanent(e.code)) lockAIFeatures();
+    } finally {
+      els.btnTrend.disabled = aiUnavailable;
+    }
+  });
+
+  function renderTrendCards(list){
+    els.trendCards.innerHTML = '';
+    list.slice(0,3).forEach(function(item){
+      var btn = document.createElement('button');
+      btn.className = 'opt';
+      btn.innerHTML =
+        '<div class="row1"><span class="title">' + esc(item.title) + '</span><span class="tag">' + esc(item.domain||'') + '</span></div>' +
+        '<div class="desc">' + esc(item.oneLiner||'') + '</div>';
+      btn.addEventListener('click', function(){ selectTrend({ title:item.title, oneLiner:item.oneLiner||'' }, btn); });
+      els.trendCards.appendChild(btn);
+    });
+  }
+
+  els.btnTrendCustom.addEventListener('click', function(){
+    var v = els.trendCustom.value.trim();
+    if(!v) return;
+    selectTrend({ title:v, oneLiner:'(직접 입력)' }, null);
+  });
+
+  function selectTrend(trend, cardEl){
+    state.trend = trend;
+    document.querySelectorAll('#trendCards .opt').forEach(function(c){ c.classList.remove('selected'); });
+    if(cardEl) cardEl.classList.add('selected');
+    els.trendRecap.textContent = '선택한 이슈 · ' + trend.title;
+    // reset downstream
+    els.nameCards.innerHTML = ''; els.nameStatus.innerHTML = ''; state.name = null;
+    goToStep(2);
+  }
+
+  // ================= STEP 2: NAME =================
+  function namePrompt(trend){
+    return '너는 "0.5-SECOND"라는 한국어 문화 표현 발굴 방법론의 평가자다. 목표: 지금 이슈에서 이미 문화 속에 숨어있던 것처럼 느껴지는 한국어 표현(대개 단어 하나)을 찾는 것. 목표 반응은 "어? → 아... → 와."\n\n' +
+      '규칙:\n' +
+      '- 의미가 매끄럽게 어울리는 조합은 오히려 약점이다 (예: "국도낭만"은 실패작). 자연스러운 어울림보다 의미 충돌이 낫다.\n' +
+      '- 최소 변형이 최선이다: 이미 강한 기존 단어를 한두 글자만 바꾸는 식 (예: 매국노→애국노, 9.5점).\n' +
+      '- 앵커력이 없으면 실패다: 그 표현만 보고 이 이슈가 바로 떠올라야 한다.\n' +
+      '- 로마자 표기 금지, 한글 그대로.\n' +
+      '- 8점(10점 만점) 이상 후보가 없으면 억지로 만들지 말고 정직하게 점수를 낮게 매겨라.\n\n' +
+      '이슈: "' + trend.title + '" — ' + trend.oneLiner + '\n\n' +
+      '최대 3개의 후보를 JSON 배열로만 답하라. 각 원소: {"word": string(발굴한 표현), "sourceWord": string(원본 단어, 없으면 빈 문자열), "score": number(0-10, 소수 첫째자리), "whyItWorks": string(1문장), "risk": string(남은 약점, 1문장)}.\n' +
+      '예시: [{"word":"예시어","sourceWord":"원본어","score":8.3,"whyItWorks":"...","risk":"..."}]\n' +
+      '설명 없이 JSON 배열만 답하라.';
+  }
+
+  els.btnName.addEventListener('click', async function(){
+    if(aiUnavailable || !state.trend) return;
+    els.btnName.disabled = true;
+    setThinking(els.nameStatus, true, 'AI가 표현을 발굴하는 중입니다… (최대 1분)');
+    els.nameCards.innerHTML = '';
+    try{
+      var list = await askJSON(namePrompt(state.trend));
+      if(!Array.isArray(list)) list = [];
+      setThinking(els.nameStatus, false);
+      renderNameCards(list);
+    } catch(e){
+      setThinking(els.nameStatus, false);
+      setError(els.nameStatus, errorCopy(e.code));
+      if(isPermanent(e.code)) lockAIFeatures();
+    } finally {
+      els.btnName.disabled = aiUnavailable;
+    }
+  });
+
+  function renderNameCards(list){
+    els.nameCards.innerHTML = '';
+    if(list.length === 0){
+      var empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = '이번엔 8점 이상 후보를 찾지 못했습니다. 아래에 직접 표현을 입력하거나, 다른 이슈로 다시 시도해보세요.';
+      els.nameCards.appendChild(empty);
+      return;
+    }
+    list.slice(0,3).forEach(function(item){
+      var btn = document.createElement('button');
+      btn.className = 'opt word';
+      var mut = item.sourceWord ? ('<span class="mut">' + esc(item.sourceWord) + '<span class="arrow">→</span></span>') : '';
+      btn.innerHTML =
+        '<div class="row1">' + mut + '<span class="score">' + (item.score!=null? Number(item.score).toFixed(1):'—') + '/10</span></div>' +
+        '<div class="w">' + esc(item.word) + '</div>' +
+        '<div class="why">' + esc(item.whyItWorks||'') + '</div>' +
+        (item.risk ? '<div class="risk">남은 약점 · ' + esc(item.risk) + '</div>' : '');
+      btn.addEventListener('click', function(){ selectName({ word:item.word, sourceWord:item.sourceWord||'', score:item.score, whyItWorks:item.whyItWorks||'' }, btn); });
+      els.nameCards.appendChild(btn);
+    });
+  }
+
+  els.btnNameCustom.addEventListener('click', function(){
+    var v = els.nameCustom.value.trim();
+    if(!v) return;
+    selectName({ word:v, sourceWord:'', score:null, whyItWorks:'(직접 입력)' }, null);
+  });
+
+  function selectName(name, cardEl){
+    state.name = name;
+    document.querySelectorAll('#nameCards .opt').forEach(function(c){ c.classList.remove('selected'); });
+    if(cardEl) cardEl.classList.add('selected');
+    els.nameRecap.textContent = '발굴한 표현 · ' + name.word;
+    goToStep(3);
+  }
+
+  // ================= STEP 3 & 4: BRAND -> IDEA =================
+  function ideaPrompt(trend, name, brand){
+    return '너는 브랜드 캠페인 액티베이션 기획자다. 아래 정보를 바탕으로 브랜드가 지금 이 이슈에 빠르게 편승(뉴스재킹)할 수 있는, 실행 가능한 수준의 구체적 아이디어를 만들어라. 과장하지 말고 실무자가 바로 회의에 들고 갈 수 있게 써라.\n\n' +
+      '이슈: "' + trend.title + '" — ' + trend.oneLiner + '\n' +
+      '발굴된 표현: "' + name.word + '"' + (name.sourceWord ? (' (원본: ' + name.sourceWord + ')') : '') + (name.whyItWorks ? (' — ' + name.whyItWorks) : '') + '\n' +
+      '브랜드: "' + brand + '"\n\n' +
+      'JSON 객체 하나로만 답하라: {"concept": string(캠페인 한 줄 컨셉, "' + name.word + '"를 반드시 활용), "hook": string(SNS 훅 카피 1개), "format": string(실행 포맷 한 개, 예: 틱톡/릴스 챌린지, 실시간 밈 포스팅, 옥외광고, 팝업스토어, 브랜드 유튜브 콘텐츠 등), "steps": string[](실행 단계 3~4개), "urgency": string(왜 지금 당장 해야 하는지 1문장), "risk": string(브랜드 세이프티 관련 주의사항 1문장)}.\n' +
+      '설명 없이 JSON 객체만 답하라.';
+  }
+
+  els.btnIdea.addEventListener('click', async function(){
+    if(aiUnavailable || !state.trend || !state.name) return;
+    var brand = els.brandInput.value.trim();
+    if(!brand){ setError(els.ideaStatus, '브랜드명을 입력해주세요.'); return; }
+    state.brand = brand;
+    els.btnIdea.disabled = true;
+    setThinking(els.ideaStatus, true, 'AI가 실행 아이디어를 만드는 중입니다… (최대 1분)');
+    try{
+      var idea = await askJSON(ideaPrompt(state.trend, state.name, brand));
+      setThinking(els.ideaStatus, false);
+      renderResult(idea);
+      goToStep(4);
+    } catch(e){
+      setThinking(els.ideaStatus, false);
+      setError(els.ideaStatus, errorCopy(e.code));
+      if(isPermanent(e.code)) lockAIFeatures();
+    } finally {
+      els.btnIdea.disabled = aiUnavailable;
+    }
+  });
+
+  function renderResult(idea){
+    var stepsHtml = (idea.steps||[]).map(function(s){ return '<li>' + esc(s) + '</li>'; }).join('');
+    els.resultBox.innerHTML =
+      '<div class="result">' +
+        '<div class="r-eyebrow">' + esc(state.brand) + ' × ' + esc(state.name.word) + '</div>' +
+        '<h3>' + esc(idea.concept||'') + '</h3>' +
+        (idea.hook ? ('<div class="hook">“' + esc(idea.hook) + '”</div>') : '') +
+        (idea.format ? ('<span class="format-tag">' + esc(idea.format) + '</span>') : '') +
+        '<ol>' + stepsHtml + '</ol>' +
+        '<div class="meta">' +
+          (idea.urgency ? ('<b>왜 지금</b> · ' + esc(idea.urgency) + '<br>') : '') +
+          (idea.risk ? ('<b>주의</b> · ' + esc(idea.risk)) : '') +
+        '</div>' +
+      '</div>';
+  }
+
+  els.btnRegen.addEventListener('click', function(){ els.btnIdea.click(); });
+
+  // ---------- boot ----------
+  (async function boot(){
+    try{
+      sample = await Promise.race([
+        (window.claude ? window.claude.use('sample') : Promise.resolve(null)),
+        new Promise(function(res){ setTimeout(function(){ res(null); }, 10500); })
+      ]);
+    } catch(e){ sample = null; }
+
+    if(!sample){
+      lockAIFeatures('AI 기능을 사용할 수 없는 환경입니다');
+    } else {
+      els.aiStatusText.textContent = 'AI 연결됨';
+    }
+  })();
+
+})();
+</script>
